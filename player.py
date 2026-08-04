@@ -24,8 +24,6 @@ def recortar(imagem, x, y, w, h):
 
 
 def para_float(valor):
-    """Converte string do OCR (com vírgula ou ponto) pra float.
-    Retorna None se não der pra converter."""
     try:
         return float(str(valor).replace(",", "."))
     except (ValueError, TypeError):
@@ -33,10 +31,6 @@ def para_float(valor):
 
 
 def limpar_nome(texto):
-    """Extrai a MAIOR palavra em Title Case (primeira letra
-    maiúscula, resto minúsculo, com direito a hífen/apóstrofo pra
-    nomes compostos tipo Jean-Philippe ou Rak-Sakyi) de UMA linha
-    de texto. Retorna '' se não achar nenhuma."""
     candidatos = re.findall(r"[A-Za-zÀ-ÿ'\-]+", texto)
     validos = [
         p for p in candidatos
@@ -48,13 +42,6 @@ def limpar_nome(texto):
 
 
 def _variantes_para_ocr_nome(crop_gray):
-    """Gera 4 versões binarizadas do recorte do nome pra tentar.
-    O CLAHE (realce de contraste local) entra porque o primeiro
-    nome é escrito numa cor bem mais fraca/escura que o sobrenome
-    -- um threshold só (fixo ou OTSU simples) muitas vezes lê o
-    sobrenome certinho mas perde o primeiro nome inteiro ou lê
-    ele como lixo. Com CLAHE, o contraste do primeiro nome fica
-    realçado o suficiente pra aparecer."""
     big = cv2.resize(crop_gray, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
     variantes = []
 
@@ -73,21 +60,6 @@ def _variantes_para_ocr_nome(crop_gray):
 
 
 def ocr_nome(gray, x, y, w, h, nome_pasta):
-    """OCR do nome do jogador (2 linhas: primeiro nome embaixo o
-    sobrenome).
-
-    A ideia central: deixa o TESSERACT separar as linhas sozinho
-    (ele já faz isso bem, mesmo com ruído -- cada ruído fica na
-    MESMA linha do nome real, nunca sozinho numa linha própria) e,
-    IGNORANDO ordem entre tentativas diferentes, pega a MAIOR
-    palavra válida de CADA linha -- como o lixo (ícones, chevrons
-    lidos como texto) é sempre mais curto que o nome de verdade,
-    isso naturalmente descarta o lixo e mantém o nome.
-
-    Tenta 4 binarizações diferentes (ver _variantes_para_ocr_nome)
-    e, entre as que renderam as 2 linhas esperadas, fica com a de
-    maior comprimento total (o nome certo quase sempre "ganha" das
-    leituras parciais/erradas por ser mais completo)."""
     crop = recortar(gray, x, y, w, h)
 
     candidatos_2_linhas = []
@@ -114,23 +86,6 @@ def ocr_nome(gray, x, y, w, h, nome_pasta):
 
 
 def ocr_overall(gray, x1, y1, x2, y2, escala=6, limiares=(170, 150, 190, 210)):
-    """OCR específico pro distintivo de overall (sempre 2 dígitos).
-
-    Descoberta importante: pedir pro tesseract ler os 2 dígitos
-    JUNTOS (ex: "79") às vezes lê errado de forma CONSISTENTE (não
-    é ruído aleatório) -- em várias imagens reais, "79" sai sempre
-    como "19" em toda tentativa de threshold/PSM, porque a fonte
-    do jogo desenha o "7" de um jeito que o modelo confunde com
-    "1" quando vê os dois dígitos juntos.
-
-    A correção: cortar a célula ao MEIO (metade esquerda = dígito
-    1, metade direita = dígito 2) e pedir pro tesseract ler CADA
-    METADE SOZINHA como um único caractere (psm 8/10/13). Isoladas,
-    a forma de cada dígito fica sem ambiguidade e o "7" deixa de
-    ser confundido com "1". Testado contra 4 imagens reais
-    (incluindo casos que davam "19" no lugar de "79") e bateu 100%
-    nas 4, sem quebrar o caso que já funcionava.
-    """
     crop = gray[y1:y2, x1:x2]
     if crop.size == 0:
         return ""
@@ -165,11 +120,6 @@ def ocr_overall(gray, x1, y1, x2, y2, escala=6, limiares=(170, 150, 190, 210)):
 
 
 def ocr_numero(gray, x1, y1, x2, y2, escala=6, exigir_digitos=None, limiares=(170, 150, 190, 210)):
-    """OCR de uma célula numérica. Tenta os thresholds na ordem de
-    'limiares' -- 170 primeiro, porque é o que calibramos como
-    melhor pra essa tabela. Só escala pros próximos thresholds se
-    170 não achar nenhum dígito. Dentro de cada threshold, faz uma
-    mini-votação entre os 4 PSMs."""
     crop = gray[y1:y2, x1:x2]
     if crop.size == 0:
         return ""
@@ -229,7 +179,7 @@ def normalizar_valor(chave, valor):
     if not inteiro.isdigit():
         return valor
 
-    base, _, coluna = chave.rpartition("_")  # 'gols_jogador' -> ('gols','_','jogador')
+    base, _, coluna = chave.rpartition("_")
 
     if coluna == "jogador" and base in CAMPOS_CONTAGEM_PEQUENA and len(inteiro) == 2 and inteiro[0] == inteiro[1]:
         inteiro = inteiro[0]
@@ -316,11 +266,6 @@ def extrair_stats_resumo_rapido(gray, coords):
 
         registro[chave] = texto.strip(",.")
 
-    # os 2 campos de distância (_km) sempre têm vírgula (formato
-    # "X,Y" -- nunca é um número inteiro puro). Se a passada em
-    # massa leu sem vírgula (ex: "44" em vez de "4,4"), o valor
-    # está incompleto -- descarta pra forçar o fallback abaixo a
-    # tentar de novo nessa célula específica.
     for rotulo in ("distancia_percorrida_media_time_km", "distancia_corrida_media_time_km"):
         for coluna in ("jogador", "time"):
             chave = f"{rotulo}_{coluna}"

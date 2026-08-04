@@ -32,9 +32,6 @@ def ocr_texto(imagem, config):
 
 
 def para_float(valor):
-    """Tenta converter algo (string vinda do OCR, número, etc.) pra float.
-    Retorna None se não der pra converter, em vez de deixar o erro se
-    propagar ou virar texto cru salvo no lugar do número."""
     try:
         return float(str(valor).replace(",", "."))
     except (ValueError, TypeError):
@@ -42,10 +39,6 @@ def para_float(valor):
 
 
 def ocr_overall(imagem_overall):
-    """Tenta ler o overall com vários PSMs diferentes até achar um
-    valor de 2 dígitos plausível. Antes, se o primeiro PSM não desse
-    2 dígitos, o campo ficava vazio -- essa é a causa da maioria dos
-    overalls em branco no CSV."""
     for psm in (8, 10, 7, 13):
         texto = ocr_texto(
             imagem_overall,
@@ -63,17 +56,8 @@ def limpar_nome(texto):
     'Michael TE:' em vez de 'Michael Olise'."""
     texto = re.sub(r"[^A-Za-zÀ-ÿ'\- ]", "", texto)
     texto = re.sub(r"\s+", " ", texto).strip()
-    # se sobrou uma "palavra" isolada e curta demais (ex: "TE"),
-    # provavelmente é ruído de overlay -- descarta pra não sujar o nome
     partes = [p for p in texto.split(" ") if len(p) > 1]
     return " ".join(partes)
-
-
-# Detecta a aba pelo CONTEÚDO da imagem: acha o centro x de cada
-# rótulo de aba (RESUMO / POSSE DE BOLA / FINALIZAÇÕES / PASSES /
-# DEFESA / GL) via OCR, acha o sublinhado rosa que marca a aba ativa
-# e vê de qual rótulo ele está mais perto. Não depende do nome do
-# arquivo (os prints do Windows não têm essa informação no nome).
 
 GRUPOS_ABA = {
     "resumo": ["RESUMO"],
@@ -118,8 +102,7 @@ def detectar_aba(img):
         if xs:
             centros[aba] = sum(xs) / len(xs)
 
-    # se não achou pelo menos a maioria dos rótulos, algo saiu muito
-    # errado (imagem cortada, resolução não prevista) -- não arrisca
+    
     if len(centros) < 4:
         return "resumo"
 
@@ -224,16 +207,10 @@ def linhas_da_tabela(gray, x, y, w_label, h):
         linhas[chave]["top"] = min(linhas[chave]["top"], topo)
         linhas[chave].setdefault("texto", []).append(texto)
 
-    # descarta linhas sem nenhuma letra (ruído/pontuação solta que
-    # o OCR às vezes "inventa" no topo da tabela e desalinha tudo)
     validas = [l for l in linhas.values() if re.search(r"[A-Za-zÀ-ÿ]", " ".join(l["texto"]))]
 
     ordenadas = sorted(validas, key=lambda l: l["top"])
 
-    # funde linhas muito próximas verticalmente: o OCR às vezes quebra
-    # uma única linha da tabela em dois blocos de texto (ex: rótulo
-    # longo com espaçamento irregular), o que fazia a contagem de
-    # linhas "sobrar" e desalinhar tudo daquele ponto em diante.
     if ordenadas:
         alturas = [l["bottom"] - l["top"] for l in ordenadas]
         altura_media = sum(alturas) / len(alturas)
@@ -258,12 +235,8 @@ def ocr_numero(gray, y_topo, y_fundo, x_ini, x_fim, pad=4):
     texto = pytesseract.image_to_string(
         otsu, lang="por+eng", config="--oem 3 --psm 7 -c tessedit_char_whitelist=0123456789,."
     ).strip().strip(".")
-    # limpa qualquer sujeira que não seja dígito/vírgula/ponto (ex: OCR
-    # "inventando" uma vírgula solta onde deveria ter lido "0")
     texto = re.sub(r"[^0-9,.]", "", texto)
     texto = texto.strip(",.")
-    # linha em branco (ou só pontuação solta) quase sempre é um "0" que
-    # sumiu no threshold
     return texto if texto else "0"
 
 
@@ -289,7 +262,6 @@ def ler_aba(caminho_imagem):
 
     tab = COORDENADAS_TABELA[(largura_img, altura_img)]
 
-    # nome e overall aparecem no painel esquerdo em qualquer aba
     nome_img = preparar_ocr(recortar(img, **nome_reg))
     overall_img = preparar_ocr(recortar(img, **overall_reg))
 
@@ -313,9 +285,6 @@ def ler_aba(caminho_imagem):
     rotulos = ABAS[aba]
     w_label = tab["w"] - 115
     linhas = linhas_da_tabela(gray, tab["x"], tab["y"], w_label, tab["h"])
-
-    # aviso quando a quantidade de linhas detectadas não bate com o
-    # esperado -- sinal de que a tabela desta imagem desalinhou
     esperado = sum(1 for r in rotulos if r is not None)
     if len(linhas) != esperado:
         print(
@@ -323,11 +292,6 @@ def ler_aba(caminho_imagem):
             f"esperava {esperado}. Os valores podem estar desalinhados — "
             f"confira debug/{nome_arquivo}_{aba}_tabela.png"
         )
-
-    # imagem de debug: tabela completa com as linhas detectadas
-    # marcadas e o rótulo que foi atribuído a cada uma. Serve pra ver
-    # de cara se uma linha ficou "faltando" ou "sobrando" e por isso
-    # todo o resto desceu/subiu uma posição.
     debug_tabela = img[tab["y"]:tab["y"] + tab["h"], tab["x"]:tab["x"] + tab["w"]].copy()
     rotulos_nao_none = [r for r in rotulos if r is not None]
     for idx, (yt, yb) in enumerate(linhas):
@@ -365,12 +329,7 @@ def ler_aba(caminho_imagem):
 PASTA_PLAYERS = os.path.join("Players", "IMGS")
 
 jogadores = []
-# colunas fixas que sempre existem; as colunas de estatística vão
-# sendo descobertas conforme aparecem (dependem da aba de cada print)
 todos_campos = ["jogador_pasta", "img", "aba", "nome", "overall"]
-
-
-# percorre automaticamente todas as pastas dos jogadores
 pastas_jogadores = sorted(
     pasta for pasta in glob.glob(os.path.join(PASTA_PLAYERS, "*"))
     if os.path.isdir(pasta)
@@ -420,8 +379,6 @@ for pasta in pastas_jogadores:
 
             registro[chave] = valor_num
 
-        # se o OCR não leu o nome nesta imagem específica, usa o nome
-        # da pasta só pra essa linha não ficar sem identificação
         if not registro.get("nome", "").strip():
             registro["nome"] = nome_pasta
 

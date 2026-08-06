@@ -51,9 +51,6 @@ def ocr_overall(imagem_overall):
 
 
 def limpar_nome(texto):
-    """Remove lixo que o OCR às vezes captura junto do nome (dois
-    pontos, dígitos, símbolos de overlay), evitando coisas como
-    'Michael TE:' em vez de 'Michael Olise'."""
     texto = re.sub(r"[^A-Za-zÀ-ÿ'\- ]", "", texto)
     texto = re.sub(r"\s+", " ", texto).strip()
     partes = [p for p in texto.split(" ") if len(p) > 1]
@@ -124,10 +121,6 @@ def detectar_aba(img):
 
     return min(centros, key=lambda aba: abs(centros[aba] - centro_rosa))
 
-
-# Rótulos de cada aba, na ordem em que aparecem na tela.
-# None = linha de cabeçalho de seção (ex: "POSSE (GERAL)"), não tem valor.
-
 ROTULOS_RESUMO = [
     "gols", "assistencias", "finalizacoes", "precisao_finalizacoes_pct",
     "passes", "precisao_passes_pct", "dribles", "taxa_dribles_certos_pct",
@@ -181,10 +174,6 @@ COORDENADAS_TABELA = {
     (1920, 1080): {"x": 1258, "y": 226, "w": 594, "h": 753},
     (1360, 768): {"x": 884, "y": 158, "w": 428, "h": 536},
 }
-
-
-# Acha a posição Y de cada linha da tabela usando o OCR da coluna de RÓTULOS
-
 def linhas_da_tabela(gray, x, y, w_label, h):
     crop = gray[y:y + h, x:x + w_label]
     big = cv2.resize(crop, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
@@ -353,9 +342,6 @@ for pasta in pastas_jogadores:
     for imagem in imagens:
 
         dados, aba = ler_aba(imagem)
-
-        # cada print vira UMA linha própria no CSV -- nada de somar
-        # ou acumular com os outros prints do mesmo jogador
         registro = {
             "jogador_pasta": nome_pasta,
             "img": os.path.basename(imagem),

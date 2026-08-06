@@ -220,11 +220,6 @@ COORDENADAS = {
 
 
 def extrair_stats_resumo_rapido(gray, coords):
-    """Lê as 17 linhas x 2 colunas da tabela RESUMO com UMA chamada
-    de OCR na tabela inteira, localizando cada número pela posição
-    (linha esperada = topo + índice*passo; coluna = jogador ou
-    time pela faixa de x). Só recorre à célula individual pros
-    poucos casos em que a chamada em massa não achou nada."""
     tabela = coords["tabela"]
     linha0_topo = coords["linha0_topo"]
     passo_linha = coords["passo_linha"]

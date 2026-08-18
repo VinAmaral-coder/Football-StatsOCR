@@ -106,7 +106,7 @@ def ocr_overall(gray, x1, y1, x2, y2, escala=6, limiares=(170, 150, 190, 210)):
                 if len(texto) == 1 and texto.isdigit():
                     candidatos.append(texto)
             if candidatos:
-                break  # esse threshold já deu um resultado de 1 dígito, não precisa dos outros
+                break
         if not candidatos:
             return ""
         return Counter(candidatos).most_common(1)[0][0]
@@ -264,7 +264,6 @@ def extrair_stats_resumo_rapido(gray, coords):
             if registro.get(chave) and "," not in registro[chave]:
                 registro[chave] = ""
 
-    # fallback pontual só pras células que ficaram faltando
     for indice, rotulo in enumerate(ROTULOS_RESUMO):
         topo = tabela["y"] + linha0_topo + indice * passo_linha
         y1, y2 = topo - 4, topo + passo_linha - 16
@@ -274,8 +273,6 @@ def extrair_stats_resumo_rapido(gray, coords):
                 x1 = tabela["x"] + faixa[0]
                 x2 = tabela["x"] + faixa[1]
                 registro[chave] = ocr_numero(gray, x1, y1, x2, y2)
-
-    # aplica o filtro de sanidade em cada valor antes de devolver
     for chave, valor in list(registro.items()):
         registro[chave] = normalizar_valor(chave, valor)
 

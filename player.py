@@ -106,7 +106,7 @@ def ocr_overall(gray, x1, y1, x2, y2, escala=6, limiares=(170, 150, 190, 210)):
                 if len(texto) == 1 and texto.isdigit():
                     candidatos.append(texto)
             if candidatos:
-                break  # esse threshold já deu um resultado de 1 dígito, não precisa dos outros
+                break
         if not candidatos:
             return ""
         return Counter(candidatos).most_common(1)[0][0]
@@ -146,12 +146,6 @@ def ocr_numero(gray, x1, y1, x2, y2, escala=6, exigir_digitos=None, limiares=(17
 
         if candidatos:
             contagem = Counter(candidatos)
-            # em caso de empate na votação, prefere o valor mais
-            # CURTO -- o artefato conhecido dessa tabela (rótulo
-            # comprido encostando no número, ex: "(km)0,4") sempre
-            # ADICIONA um dígito a mais na frente do valor certo,
-            # nunca remove um dígito. Então entre "40,4" e "0,4"
-            # empatados, "0,4" (mais curto) é o correto.
             melhor = min(contagem.items(), key=lambda kv: (-kv[1], len(kv[0])))
             return melhor[0]
 
@@ -169,9 +163,6 @@ CAMPOS_CONTAGEM_PEQUENA = {
 
 
 def normalizar_valor(chave, valor):
-    """Corrige 2 padrões de erro conhecidos (ver explicação no
-    topo do arquivo). 'chave' é o nome da coluna do CSV, tipo
-    'gols_jogador' ou 'precisao_finalizacoes_pct_time'."""
     if not valor:
         return valor
 
@@ -179,7 +170,7 @@ def normalizar_valor(chave, valor):
     if not inteiro.isdigit():
         return valor
 
-    base, _, coluna = chave.rpartition("_")
+    base, _, coluna = chave.rpartition("_")  # 'gols_jogador' -> ('gols','_','jogador')
 
     if coluna == "jogador" and base in CAMPOS_CONTAGEM_PEQUENA and len(inteiro) == 2 and inteiro[0] == inteiro[1]:
         inteiro = inteiro[0]
@@ -220,6 +211,7 @@ COORDENADAS = {
 
 
 def extrair_stats_resumo_rapido(gray, coords):
+
     tabela = coords["tabela"]
     linha0_topo = coords["linha0_topo"]
     passo_linha = coords["passo_linha"]
@@ -261,13 +253,17 @@ def extrair_stats_resumo_rapido(gray, coords):
 
         registro[chave] = texto.strip(",.")
 
+    # os 2 campos de distância (_km) sempre têm vírgula (formato
+    # "X,Y" -- nunca é um número inteiro puro). Se a passada em
+    # massa leu sem vírgula (ex: "44" em vez de "4,4"), o valor
+    # está incompleto -- descarta pra forçar o fallback abaixo a
+    # tentar de novo nessa célula específica.
     for rotulo in ("distancia_percorrida_media_time_km", "distancia_corrida_media_time_km"):
         for coluna in ("jogador", "time"):
             chave = f"{rotulo}_{coluna}"
             if registro.get(chave) and "," not in registro[chave]:
                 registro[chave] = ""
 
-    # fallback pontual só pras células que ficaram faltando
     for indice, rotulo in enumerate(ROTULOS_RESUMO):
         topo = tabela["y"] + linha0_topo + indice * passo_linha
         y1, y2 = topo - 4, topo + passo_linha - 16
@@ -277,8 +273,6 @@ def extrair_stats_resumo_rapido(gray, coords):
                 x1 = tabela["x"] + faixa[0]
                 x2 = tabela["x"] + faixa[1]
                 registro[chave] = ocr_numero(gray, x1, y1, x2, y2)
-
-    # aplica o filtro de sanidade em cada valor antes de devolver
     for chave, valor in list(registro.items()):
         registro[chave] = normalizar_valor(chave, valor)
 

@@ -167,10 +167,6 @@ COORDENADAS_TABELA = {
     (1920, 1080): {"x": 1258, "y": 226, "w": 594, "h": 753},
     (1360, 768): {"x": 884, "y": 158, "w": 428, "h": 536},
 }
-
-
-# Acha a posição Y de cada linha da tabela usando o OCR da coluna de RÓTULOS
-
 def linhas_da_tabela(gray, x, y, w_label, h):
     crop = gray[y:y + h, x:x + w_label]
     big = cv2.resize(crop, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
@@ -248,7 +244,6 @@ def ler_aba(caminho_imagem):
 
     tab = COORDENADAS_TABELA[(largura_img, altura_img)]
 
-    # nome e overall aparecem no painel esquerdo em qualquer aba
     nome_img = preparar_ocr(recortar(img, **nome_reg))
     overall_img = preparar_ocr(recortar(img, **overall_reg))
 

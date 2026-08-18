@@ -87,6 +87,7 @@ Atualmente o projeto apresenta os seguintes tempos médios de execução:
 | Quantidade de imagens | Tempo médio |
 |-----------------------:|------------:|
 | 298 imagens | ~17 minutos |
+| 499 imagens | ~45 minutos |
 
 Durante esse processamento são realizadas operações como:
 

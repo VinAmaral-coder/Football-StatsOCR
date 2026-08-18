@@ -76,12 +76,12 @@ Até o momento foram realizados testes utilizando:
 - **298 imagens**
 - **36 tabelas individuais**
 - **10.728 dados coletados**
-
+<br></br>
 - **499 imagens**
 - **36 tabelas individuais**
 - **17.964 dados coletados**
 - 10 imagens descartadas no total
-
+<br></br>
 - **612 imagens**
 - **36 tabelas individuais**
 - **22. 032 dados coletados**

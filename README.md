@@ -79,12 +79,12 @@ Até o momento foram realizados testes utilizando:
 <br></br>
 - **499 imagens**
 - **36 tabelas individuais**
-- **17.964 dados coletados**
-- 10 imagens descartadas no total
+- **19.760 dados coletados**
+- 4 imagens descartadas no total
 <br></br>
 - **612 imagens**
 - **36 tabelas individuais**
-- **22.032 dados coletados**
+- **22.291 dados coletados**
 - 8 imagens descartadas no total
 
 Os resultados têm sido satisfatórios para um projeto em desenvolvimento, embora ainda existam limitações inerentes ao OCR.

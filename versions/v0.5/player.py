@@ -68,8 +68,6 @@ GRUPOS_ABA = {
 
 def detectar_aba(img):
     altura_img, largura_img = img.shape[:2]
-    # região aproximada da barra de abas, escalada pela resolução
-    # (medida em cima de screenshots 1920x1080)
     fx, fy = largura_img / 1920, altura_img / 1080
     bx, by = int(700 * fx), int(150 * fy)
     bw, bh = int(1200 * fx), int(70 * fy)
@@ -78,7 +76,6 @@ def detectar_aba(img):
     if faixa.size == 0:
         return "resumo"
 
-    # 1) OCR pra achar o centro x de cada rótulo de aba
     gray = cv2.cvtColor(faixa, cv2.COLOR_BGR2GRAY)
     big = cv2.resize(gray, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
     _, otsu = cv2.threshold(big, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -98,13 +95,9 @@ def detectar_aba(img):
         xs = [x for x, t in palavras if t in alvos]
         if xs:
             centros[aba] = sum(xs) / len(xs)
-
-    
     if len(centros) < 4:
         return "resumo"
 
-    # 2) acha a linha rosa (sublinhado da aba ativa) por cor, dentro
-    # da mesma faixa
     melhor_y, melhor_mask, melhor_qtd = None, None, 0
     for y in range(faixa.shape[0]):
         linha = faixa[y]
@@ -196,10 +189,10 @@ def linhas_da_tabela(gray, x, y, w_label, h):
         linhas[chave]["top"] = min(linhas[chave]["top"], topo)
         linhas[chave].setdefault("texto", []).append(texto)
 
+    # descarta linhas sem nenhuma letra (ruído/pontuação solta que
     validas = [l for l in linhas.values() if re.search(r"[A-Za-zÀ-ÿ]", " ".join(l["texto"]))]
 
     ordenadas = sorted(validas, key=lambda l: l["top"])
-
     if ordenadas:
         alturas = [l["bottom"] - l["top"] for l in ordenadas]
         altura_media = sum(alturas) / len(alturas)
@@ -313,47 +306,35 @@ def ler_aba(caminho_imagem):
 
     return resultado, aba
 
-
-
 PASTA_PLAYERS = os.path.join("Players", "IMGS")
-
 jogadores = []
 todos_campos = ["jogador_pasta", "img", "aba", "nome", "overall"]
 pastas_jogadores = sorted(
     pasta for pasta in glob.glob(os.path.join(PASTA_PLAYERS, "*"))
     if os.path.isdir(pasta)
 )
-
 print(f"\n{len(pastas_jogadores)} jogador(es) encontrado(s)")
-
 for pasta in pastas_jogadores:
-
     imagens = sorted(
         f
         for ext in ("*.png", "*.jpg", "*.jpeg")
         for f in glob.glob(os.path.join(pasta, ext))
     )
-
     if not imagens:
         continue
-
     nome_pasta = os.path.basename(pasta)
-
     for imagem in imagens:
-
         dados, aba = ler_aba(imagem)
+        # cada print vira UMA linha própria no CSV
         registro = {
             "jogador_pasta": nome_pasta,
             "img": os.path.basename(imagem),
             "aba": aba,
         }
-
         for chave, valor in dados.items():
-
             if chave in ("nome", "overall"):
                 registro[chave] = valor
                 continue
-
             valor_num = para_float(valor)
             if valor_num is None:
                 print(
@@ -362,29 +343,20 @@ for pasta in pastas_jogadores:
                 )
                 registro[chave] = ""
                 continue
-
             registro[chave] = valor_num
-
         if not registro.get("nome", "").strip():
             registro["nome"] = nome_pasta
-
         jogadores.append(registro)
-
         for campo in registro:
             if campo not in todos_campos:
                 todos_campos.append(campo)
-
-
 with open("output/jogadores.csv", "w", newline="", encoding="utf-8") as arquivo:
     writer = csv.DictWriter(arquivo, fieldnames=todos_campos, restval="")
     writer.writeheader()
     writer.writerows(jogadores)
-
 print("\nCSV criado com sucesso!")
-
 fim = time.perf_counter()
 tempo = fim - inicio
-
 minutos = int(tempo // 60)
 segundos = tempo % 60
 print(f"\nTempo de processamento: {minutos} min {segundos:.2f} s")
